@@ -214,6 +214,11 @@ lib LibLLVM
   fun initialize_arm_target = LLVMInitializeARMTarget
   fun initialize_arm_target_info = LLVMInitializeARMTargetInfo
   fun initialize_arm_target_mc = LLVMInitializeARMTargetMC
+  fun initialize_avr_asm_printer = LLVMInitializeAVRAsmPrinter
+  fun initialize_avr_asm_parser = LLVMInitializeAVRAsmParser
+  fun initialize_avr_target = LLVMInitializeAVRTarget
+  fun initialize_avr_target_info = LLVMInitializeAVRTargetInfo
+  fun initialize_avr_target_mc = LLVMInitializeAVRTargetMC
   fun initialize_webassembly_asm_printer = LLVMInitializeWebAssemblyAsmPrinter
   fun initialize_webassembly_asm_parser = LLVMInitializeWebAssemblyAsmParser
   fun initialize_webassembly_target = LLVMInitializeWebAssemblyTarget
