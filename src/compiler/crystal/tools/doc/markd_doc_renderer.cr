@@ -158,4 +158,20 @@ class Crystal::Doc::MarkdDocRenderer < Markd::HTMLRenderer
       type.lookup_macro(name, args_count) ||
       type.program.lookup_macro(name, args_count)
   end
+
+  def text(node : Markd::Node, entering : Bool)
+    output(escape(node.text))
+  end
+
+  def html_block(node : Markd::Node, entering : Bool)
+    newline
+    content = @options.safe? ? "<!-- raw HTML omitted -->" : escape(node.text)
+    literal(content)
+    newline
+  end
+
+  def html_inline(node : Markd::Node, entering : Bool)
+    content = @options.safe? ? "<!-- raw HTML omitted -->" : escape(node.text)
+    literal(content)
+  end
 end
