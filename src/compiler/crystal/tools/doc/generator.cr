@@ -31,6 +31,7 @@ class Crystal::Doc::Generator
                  @project_info : ProjectInfo)
     @base_dir = Dir.current.chomp
     @types = {} of Crystal::Type => Doc::Type
+    @included_namespaces = [] of Crystal::ModuleType
   end
 
   def run
@@ -146,9 +147,15 @@ class Crystal::Doc::Generator
     # Don't include lib types or types inside a lib type
     return false if type.is_a?(Crystal::LibType) || type.namespace.is_a?(LibType)
 
-    !!type.locations.try &.any? do |type_location|
+    res = !!type.locations.try &.any? do |type_location|
       must_include? type_location
     end
+    if res && type.is_a?(NamedType)
+      type.each_namespace do |ns|
+        @included_namespaces << ns
+      end
+    end
+    res
   end
 
   def must_include?(method : Method)
@@ -272,6 +279,11 @@ class Crystal::Doc::Generator
     types = [] of Constant
 
     parent.type.types?.try &.each_value do |type|
+      if type.is_a?(ModuleType) && @included_namespaces.includes?(type) && !type.private?
+        STDERR.puts "Warning: Module #{type.full_name} should be defined explicitly in `src/` to be included in doc generation."
+        # types << Constant.new(self, parent, type) # TypeError casting ModuleType to Const
+      end
+
       if type.is_a?(Const) && must_include?(type) && !type.private?
         types << Constant.new(self, parent, type)
       end
