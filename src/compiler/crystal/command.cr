@@ -48,6 +48,7 @@ class Crystal::Command
         implementations          show implementations for given call in location
         unreachable              show methods that are never called
         types                    show type of main variables
+        namespaces               show all class/struct/module/annotation/enum/etc names
         --help, -h               show this help
     USAGE
 
@@ -187,6 +188,9 @@ class Crystal::Command
     when "hierarchy".starts_with?(tool)
       options.shift
       hierarchy
+    when "namespaces".starts_with?(tool)
+      options.shift
+      namespaces
     when "dependencies".starts_with?(tool)
       options.shift
       dependencies
@@ -220,6 +224,13 @@ class Crystal::Command
     config, result = compile_no_codegen "tool hierarchy", hierarchy: true, top_level: true
     @progress_tracker.stage("Tool (hierarchy)") do
       Crystal.print_hierarchy result.program, STDOUT, config.hierarchy_exp, config.output_format
+    end
+  end
+
+  private def namespaces
+    config, result = compile_no_codegen "tool namespaces", hierarchy: true, top_level: true, wants_doc: true
+    @progress_tracker.stage("Tool (namespaces)") do
+      Crystal.print_namespaces result.program, STDOUT, config.hierarchy_exp, config.output_format
     end
   end
 
