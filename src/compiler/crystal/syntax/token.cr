@@ -166,6 +166,7 @@ module Crystal
       OP_SLASH_EQ                 # /=
       OP_COLON                    # :
       OP_COLON_COLON              # ::
+      OP_COLON_EQ                 # :=
       OP_SEMICOLON                # ;
       OP_LT                       # <
       OP_LT_LT                    # <<

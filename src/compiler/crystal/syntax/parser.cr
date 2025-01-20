@@ -1243,7 +1243,7 @@ module Crystal
           warnings.add_warning_at(@token.location, "space required before colon in type declaration (run `crystal tool format` to fix this)")
         end
         skip_space
-        check :OP_COLON
+        check [:OP_COLON, :OP_COLON_EQ] of Token::Kind
         type_declaration = parse_type_declaration(var)
         set_visibility type_declaration
       else
@@ -1252,13 +1252,25 @@ module Crystal
     end
 
     def parse_type_declaration(var)
-      next_token_skip_space_or_newline
-      var_type = parse_bare_proc_type
-      skip_space
-      if @token.type.op_eq?
+      if @token.type.op_colon?
+        next_token_skip_space_or_newline
+        var_type = parse_bare_proc_type
+        skip_space
+        if @token.type.op_eq?
+          next_token_skip_space_or_newline
+          value = parse_op_assign_no_control
+        end
+      elsif @token.type.op_colon_eq?
+        location = @token.location
+        end_location = token_end_location
+
         next_token_skip_space_or_newline
         value = parse_op_assign_no_control
+        var_type = TypeOf.new([value] of ASTNode).at(location).at_end(end_location)
+      else
+        raise "shouldn't be here"
       end
+
       TypeDeclaration.new(var, var_type, value).at(var).at_end(value || var_type)
     end
 
@@ -1272,7 +1284,7 @@ module Crystal
       comes_colon_space = current_char == ':'
       if comes_colon_space
         next_char_no_column_increment
-        comes_colon_space = current_char.ascii_whitespace?
+        comes_colon_space = (current_char.ascii_whitespace? || current_char == '=')
       end
       self.current_pos = pos
       comes_colon_space
@@ -1287,7 +1299,7 @@ module Crystal
       space_after_name = @token.type.space?
       skip_space
 
-      if @no_type_declaration == 0 && @token.type.op_colon?
+      if @no_type_declaration == 0 && (@token.type.op_colon? || @token.type.op_colon_eq?)
         unless space_after_name
           warnings.add_warning_at(@token.location, "space required before colon in type declaration (run `crystal tool format` to fix this)")
         end
@@ -4363,7 +4375,7 @@ module Crystal
               call
             end
           else
-            if @no_type_declaration == 0 && @token.type.op_colon?
+            if @no_type_declaration == 0 && (@token.type.op_colon? || @token.type.op_colon_eq?)
               unless name_followed_by_space
                 warnings.add_warning_at(@token.location, "space required before colon in type declaration (run `crystal tool format` to fix this)")
               end
@@ -4742,7 +4754,7 @@ module Crystal
 
       found_double_splat = false
 
-      while !@token.type.newline? && !@token.type.op_semicolon? && !@token.type.eof? && @token.type != end_token && !@token.type.op_colon? && !end_token?
+      while !@token.type.newline? && !@token.type.op_semicolon? && !@token.type.eof? && @token.type != end_token && !@token.type.op_colon? && !@token.type.op_colon_eq? && !end_token?
         if call_block_arg_follows?
           return parse_call_block_arg(args, false)
         end

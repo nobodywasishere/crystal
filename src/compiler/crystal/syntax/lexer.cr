@@ -400,12 +400,17 @@ module Crystal
         reset_regex_flags = false
         next_char :OP_SEMICOLON
       when ':'
-        if next_char == ':'
+        case next_char
+        when ':'
           next_char :OP_COLON_COLON
-        elsif @wants_symbol
-          consume_symbol
+        when '='
+          next_char :OP_COLON_EQ
         else
-          @token.type = :OP_COLON
+          if @wants_symbol
+            consume_symbol
+          else
+            @token.type = :OP_COLON
+          end
         end
       when '~'
         next_char :OP_TILDE
