@@ -3907,32 +3907,13 @@ module Crystal
 
       found_colon = false
 
-      if allow_restrictions && @token.type.op_colon?
+      if allow_restrictions && @token.type.op_colon_eq?
         if !default_value && !found_space
           raise "space required before colon in type restriction", @token
         end
 
-        next_token_skip_space_or_newline
-
-        location = @token.location
-        splat_restriction = false
-        if (splat && @token.type.op_star?) || (double_splat && @token.type.op_star_star?)
-          splat_restriction = true
-          next_token
-        end
-
-        restriction = parse_bare_proc_type
-
-        if splat_restriction
-          restriction = splat ? Splat.new(restriction) : DoubleSplat.new(restriction)
-          restriction.at(location)
-        end
         found_colon = true
-      end
-
-      if @token.type.op_eq?
-        raise "splat parameter can't have default value", @token if splat
-        raise "double splat parameter can't have default value", @token if double_splat
+        location = @token.location
 
         slash_is_regex!
         next_token_skip_space_or_newline
@@ -3947,10 +3928,55 @@ module Crystal
           @no_type_declaration -= 1
         end
 
+        restriction = TypeOf.new([default_value] of ASTNode).at(location)
+
         skip_space
       else
-        if found_default_value && !found_splat && !splat && !double_splat
-          raise "parameter must have a default value", param_location
+        if allow_restrictions && @token.type.op_colon?
+          if !default_value && !found_space
+            raise "space required before colon in type restriction", @token
+          end
+
+          next_token_skip_space_or_newline
+
+          location = @token.location
+          splat_restriction = false
+          if (splat && @token.type.op_star?) || (double_splat && @token.type.op_star_star?)
+            splat_restriction = true
+            next_token
+          end
+
+          restriction = parse_bare_proc_type
+
+          if splat_restriction
+            restriction = splat ? Splat.new(restriction) : DoubleSplat.new(restriction)
+            restriction.at(location)
+          end
+          found_colon = true
+        end
+
+        if @token.type.op_eq?
+          raise "splat parameter can't have default value", @token if splat
+          raise "double splat parameter can't have default value", @token if double_splat
+
+          slash_is_regex!
+          next_token_skip_space_or_newline
+
+          case @token.type
+          when .magic?
+            default_value = MagicConstant.new(@token.type).at(@token.location)
+            next_token
+          else
+            @no_type_declaration += 1
+            default_value = parse_op_assign
+            @no_type_declaration -= 1
+          end
+
+          skip_space
+        else
+          if found_default_value && !found_splat && !splat && !double_splat
+            raise "parameter must have a default value", param_location
+          end
         end
       end
 
