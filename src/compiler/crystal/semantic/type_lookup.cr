@@ -368,13 +368,13 @@ class Crystal::Type
     end
 
     def lookup(node : TypeOf)
-      unless @allow_typeof
-        if @raise
-          node.raise "can't use 'typeof' here"
-        else
-          return
-        end
-      end
+      # unless @allow_typeof
+      #   if @raise
+      #     node.raise "can't use 'typeof' here"
+      #   else
+      #     return
+      #   end
+      # end
 
       meta_vars = MetaVars{"self" => MetaVar.new("self", @self_type)}
       visitor = MainVisitor.new(program, meta_vars)
