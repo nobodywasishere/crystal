@@ -404,7 +404,14 @@ module Crystal
         when ':'
           next_char :OP_COLON_COLON
         when '='
-          next_char :OP_COLON_EQ
+          if !peek_next_char.in?('=', '~')
+            next_char
+            next_char :OP_COLON_EQ
+          elsif @wants_symbol
+            consume_symbol
+          else
+            unknown_token
+          end
         else
           if @wants_symbol
             consume_symbol
