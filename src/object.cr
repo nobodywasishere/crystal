@@ -734,7 +734,7 @@ class Object
   # Foo.instance # => <Foo:0x76a06116ae30>
   # ```
   macro thread_local(decl, &constructor)
-    {% raise "The thread_local macro expects a TypeDeclaration" unless decl.is_a?(TypeDeclaration) %}
+    {% decl.raise "The thread_local macro expects a TypeDeclaration" unless decl.is_a?(TypeDeclaration) %}
     {% name = decl.var.id %}
     {% tls_name = "__tls_#{@type.name.gsub(/:/, "_")}__#{name}".id %}
     {% emulated_tls = flag?(:android) || flag?(:openbsd) || (flag?(:win32) && flag?(:gnu)) %}

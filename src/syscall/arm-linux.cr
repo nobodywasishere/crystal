@@ -453,7 +453,7 @@ module Syscall
                       : "memory"
                       : "volatile")
       {% else %}
-        {% raise "Not supported number of arguments for syscall" %}
+        {% args.raise "Not supported number of arguments for syscall" %}
       {% end %}
 
       ret

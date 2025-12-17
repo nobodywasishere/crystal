@@ -62,7 +62,7 @@
 # p                  # => #<Point(@x=0, @y=2)>
 # ```
 macro record(__name name, *properties, **kwargs)
-  {% raise <<-TXT unless kwargs.empty?
+  {% kwargs.raise <<-TXT unless kwargs.empty?
     macro `record` does not accept named arguments
       Did you mean:
 

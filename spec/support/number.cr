@@ -101,7 +101,7 @@ end
 # is `Float64` unless *str* ends with `_f32`, in which case that suffix is
 # stripped and `Float32` is chosen.
 macro hexfloat(str)
-  {% raise "`str` must be a StringLiteral, not #{str.class_name}" unless str.is_a?(StringLiteral) %}
+  {% str.raise "`str` must be a StringLiteral, not #{str.class_name}" unless str.is_a?(StringLiteral) %}
   {% if str.ends_with?("_f32") %}
     ::Float32.parse_hexfloat({{ str[0...-4] }})
   {% else %}

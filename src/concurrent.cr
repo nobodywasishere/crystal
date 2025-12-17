@@ -120,7 +120,7 @@ end
 # *i* are passed to a `Proc` that eventually invokes the call.
 macro spawn(call, *, name = nil, same_thread = false, &block)
   {% if block %}
-    {% raise "`spawn(call)` can't be invoked with a block, did you mean `spawn(name: ...) { ... }`?" %}
+    {% block.raise "`spawn(call)` can't be invoked with a block, did you mean `spawn(name: ...) { ... }`?" %}
   {% end %}
 
   {% if call.is_a?(Call) %}

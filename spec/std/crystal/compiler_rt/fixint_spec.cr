@@ -48,7 +48,8 @@ describe "__fixdfti" do
   test__fixdfti(-2.0, -2)
   test__fixdfti(-2.01, -2)
 
-  test__fixdfti(hexfloat("0x1.FFFFFEp+62"), 0x7FFFFF8000000000_u64)
+  str = "0x1.FFFFFEp+62"
+  test__fixdfti(hexfloat(str), 0x7FFFFF8000000000_u64)
   test__fixdfti(hexfloat("0x1.FFFFFCp+62"), 0x7FFFFF0000000000_u64)
 
   test__fixdfti(hexfloat("-0x1.FFFFFEp+62"), make_ti(0xFFFFFFFFFFFFFFFF_u64, 0x8000008000000000_u64))
