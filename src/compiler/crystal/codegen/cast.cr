@@ -111,12 +111,12 @@ class Crystal::CodeGenVisitor
     # for example with named tuple of same keys with different order. In that case we need cast
     # those value to the correct type before finally storing them in the target union.
     needs_union_value_cast = value_type.union_types.any? do |vt|
-      needs_value_cast_inside_union?(vt, target_type)
+      needs_upcast_value_cast_inside_union?(vt, target_type)
     end
 
     if needs_union_value_cast # Compute the values that need a cast
       types_needing_cast = value_type.union_types.select do |vt|
-        needs_value_cast_inside_union?(vt, target_type)
+        needs_upcast_value_cast_inside_union?(vt, target_type)
       end
       # Fetch the value's type id
       value_type_id, union_value_ptr = union_type_and_value_pointer(value, value_type)
@@ -153,14 +153,24 @@ class Crystal::CodeGenVisitor
     end
   end
 
-  def needs_value_cast_inside_union?(value_type, union_type)
+  private def needs_upcast_value_cast_inside_union?(value_type, union_type)
     # A type needs a special cast if:
     # 1. It's a tuple or named tuple
     # 2. It's not inside the target union
-    # 3. There's a compatible type inside the target union
+    # 3. The value type can upcast to a compatible type inside the target union
     return false unless value_type.is_a?(TupleInstanceType) || value_type.is_a?(NamedTupleInstanceType)
     !union_type.union_types.any?(&.==(value_type)) &&
-      union_type.union_types.any? { |ut| value_type.implements?(ut) || ut.implements?(value_type) }
+      union_type.union_types.any? { |ut| value_type.implements?(ut) }
+  end
+
+  private def needs_downcast_value_cast_inside_union?(value_type, union_type)
+    # A type needs a special cast if:
+    # 1. It's a tuple or named tuple
+    # 2. It's not inside the target union
+    # 3. A compatible type inside the target union can downcast to the value type
+    return false unless value_type.is_a?(TupleInstanceType) || value_type.is_a?(NamedTupleInstanceType)
+    !union_type.union_types.any?(&.==(value_type)) &&
+      union_type.union_types.any? { |ut| ut.implements?(value_type) }
   end
 
   def assign_distinct(target_pointer, target_type : MixedUnionType, value_type : NilableType, value)
@@ -375,13 +385,13 @@ class Crystal::CodeGenVisitor
     # for example with named tuple of same keys with different order. In that case we need cast
     # those value to the correct type before finally storing them in the target union.
     needs_union_value_cast = from_type.union_types.any? do |vt|
-      needs_value_cast_inside_union?(vt, to_type)
+      needs_downcast_value_cast_inside_union?(vt, to_type)
     end
 
     if needs_union_value_cast
       # Compute the values that need a cast
       types_needing_cast = from_type.union_types.select do |vt|
-        needs_value_cast_inside_union?(vt, to_type)
+        needs_downcast_value_cast_inside_union?(vt, to_type)
       end
 
       # Fetch the value's type id
@@ -578,13 +588,13 @@ class Crystal::CodeGenVisitor
     # for example with named tuple of same keys with different order. In that case we need cast
     # those value to the correct type before finally storing them in the target union.
     needs_union_value_cast = from_type.union_types.any? do |vt|
-      needs_value_cast_inside_union?(vt, to_type)
+      needs_upcast_value_cast_inside_union?(vt, to_type)
     end
 
     if needs_union_value_cast
       # Compute the values that need a cast
       types_needing_cast = from_type.union_types.select do |vt|
-        needs_value_cast_inside_union?(vt, to_type)
+        needs_upcast_value_cast_inside_union?(vt, to_type)
       end
 
       # Fetch the value's type id

@@ -17,6 +17,20 @@ describe "Code gen: proc" do
       CRYSTAL
   end
 
+  it "doesn't crash on nilable proc return with recursive alias in named tuple (#12372)" do
+    codegen(<<-CRYSTAL)
+      alias RecType = Int32 | Array(RecType)
+
+      -> : NamedTuple(value: Int32 | RecType)? do
+        if false
+          {value: 1}
+        else
+          -> : NamedTuple(value: RecType)? { nil }.call
+        end
+      end
+      CRYSTAL
+  end
+
   it "call proc pointer" do
     run("def foo; 1; end; x = ->foo; x.call").to_i.should eq(1)
   end
