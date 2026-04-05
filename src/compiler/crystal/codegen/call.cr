@@ -352,7 +352,11 @@ class Crystal::CodeGenVisitor
       # call `#remove_indirection` here so that the downcast call in
       # `#visit(Var)` doesn't spend time expanding module types again and again
       # (it should be the only use site of `node_obj.type`)
-      new_vars["%self"] = LLVMVar.new(@last, node_obj.type.remove_indirection, true)
+      self_type = node_obj.type.remove_indirection
+      if self_type.is_a?(ClassType) && self_type.struct? && self_type.abstract?
+        node.raise "can't dispatch on abstract struct #{self_type} because it has no concrete descendants"
+      end
+      new_vars["%self"] = LLVMVar.new(@last, self_type, true)
     end
 
     # Get type if of args and create arg vars

@@ -646,4 +646,27 @@ describe "Code gen: struct" do
       A.as(Foo.class).new
       CRYSTAL
   end
+
+  it "raises a regular error for abstract union with no concrete descendants (#11786)" do
+    expect_raises(Exception, "can't dispatch on abstract struct Root because it has no concrete descendants") do
+      codegen <<-CRYSTAL
+        require "prelude"
+
+        abstract struct Root; end
+        abstract struct Alpha < Root; end
+        abstract struct Bravo < Root; end
+
+        abstract struct Uno < Alpha; end
+        abstract struct Duo < Bravo; end
+
+        alias BadUnion = (Alpha | Bravo)
+
+        struct KillCompiler
+          property bad_one = [] of BadUnion
+        end
+
+        pp KillCompiler.new
+      CRYSTAL
+    end
+  end
 end
