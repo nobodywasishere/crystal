@@ -76,6 +76,27 @@ describe "Restrictions" do
       mod.t("Mxx").restrict(mod.t("Nxx"), MatchContext.new(mod, mod)).should eq(mod.union_of(mod.t("Cxx"), mod.t("Dxx"), mod.t("Exx")))
     end
 
+    it "keeps partial matches from every member of an overlapping union (#14942)" do
+      mod = Program.new
+      mod.semantic parse(<<-CRYSTAL)
+        module Axx; end
+        module Bxx; end
+        module Xxx; end
+        module Yxx; end
+        class AXxx; include Axx; include Xxx; end
+        class AYxx; include Axx; include Yxx; end
+        class BXxx; include Bxx; include Xxx; end
+        class BYxx; include Bxx; include Yxx; end
+        CRYSTAL
+
+      source = mod.union_of(mod.t("Axx"), mod.t("Bxx"))
+      restriction = Crystal::Union.new(["Xxx".path, "Yxx".path] of ASTNode)
+      result = source.restrict(restriction, MatchContext.new(mod, mod))
+
+      expected = mod.union_of([mod.t("AXxx"), mod.t("AYxx"), mod.t("BXxx"), mod.t("BYxx")])
+      result.should eq(expected)
+    end
+
     it "restricts generic module instance with another module" do
       mod = Program.new
       mod.semantic parse(<<-CRYSTAL)

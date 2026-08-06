@@ -1052,14 +1052,19 @@ module Crystal
 
       types = [] of Type
       discarded = [] of Type
+      partial_matches = [] of {Type, Type}
       other_types.each do |other_type|
         self.union_types.each do |type|
           next if discarded.includes?(type)
 
           restricted = type.restrict(other_type, context)
           if restricted
-            types << restricted
-            discarded << type
+            if restricted == type
+              types << restricted
+              discarded << type
+            else
+              partial_matches << {type, restricted}
+            end
           end
         end
       end
@@ -1078,6 +1083,13 @@ module Crystal
           if restricted = remaining_type.restrict(free_var, context)
             types << restricted
           end
+        end
+      else
+        # A partial match can become redundant when another union member
+        # matches the entire type, so only add partial matches after all the
+        # concrete restrictions have been considered.
+        partial_matches.each do |type, restricted|
+          types << restricted unless discarded.includes?(type)
         end
       end
 

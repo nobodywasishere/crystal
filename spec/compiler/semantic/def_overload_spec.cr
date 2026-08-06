@@ -1122,6 +1122,27 @@ describe "Semantic: def overload" do
       CRYSTAL
   end
 
+  it "gets a free variable from a union with overlapping module members (#14942)" do
+    assert_type(<<-CRYSTAL) { union_of(types["B"], char).metaclass }
+      module A
+      end
+
+      module B
+      end
+
+      class C
+        include A
+        include B
+      end
+
+      def remainder_type(value : Array(A | U)) forall U
+        U
+      end
+
+      remainder_type([] of A | B | Char)
+      CRYSTAL
+  end
+
   it "matches a generic module argument" do
     assert_type(<<-CRYSTAL) { int32 }
       module Bar(T)

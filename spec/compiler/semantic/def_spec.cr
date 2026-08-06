@@ -184,6 +184,64 @@ describe "Semantic: def" do
       CRYSTAL
   end
 
+  it "allows a union default value when a type includes multiple union members (#14942)" do
+    assert_type(<<-CRYSTAL) { nil_type }
+      module A
+      end
+
+      module B
+      end
+
+      class C
+        include A
+        include B
+      end
+
+      def foo(types : Array(A | B) = [] of A | B)
+      end
+
+      foo
+      CRYSTAL
+  end
+
+  it "allows overlapping unions in nested generic default values (#14942)" do
+    assert_type(<<-CRYSTAL) { int32 }
+      module A
+      end
+
+      module B
+      end
+
+      module C
+      end
+
+      class AB
+        include A
+        include B
+      end
+
+      class BC
+        include B
+        include C
+      end
+
+      class ABC
+        include A
+        include B
+        include C
+      end
+
+      def process(
+        payload : Tuple(Array(A | B | C), Hash(String, A | B | C)) =
+          {[] of A | B | C, {} of String => A | B | C},
+      )
+        1
+      end
+
+      process
+      CRYSTAL
+  end
+
   it "types call with global scope" do
     assert_type(<<-CRYSTAL) { int32 }
       def bar
