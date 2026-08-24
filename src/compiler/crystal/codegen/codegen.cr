@@ -249,7 +249,7 @@ module Crystal
 
     alias LLVMVars = Hash(String, LLVMVar)
 
-    record Handler, node : ExceptionHandler, context : Context
+    record Handler, node : ExceptionHandler, context : Context, outer_rescue_block : LLVM::BasicBlock?
     record StringKey, mod : LLVM::Module, string : String
     record ModuleInfo, mod : LLVM::Module, typer : LLVMTyper, builder : CrystalLLVMBuilder
 

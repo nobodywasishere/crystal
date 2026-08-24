@@ -331,6 +331,38 @@ describe "Code gen: exception" do
       CRYSTAL
   end
 
+  it "doesn't rescue exceptions raised by ensure after return (#11149)" do
+    run(<<-CRYSTAL).to_i.should eq(0)
+      require "prelude"
+
+      class Global
+        @@rescued = 0
+
+        def self.rescued=(@@rescued)
+        end
+
+        def self.rescued
+          @@rescued
+        end
+      end
+
+      def foo
+        return if 1 == 1
+      rescue
+        Global.rescued = 1
+      ensure
+        raise "OH NO!"
+      end
+
+      begin
+        foo
+      rescue
+      end
+
+      Global.rescued
+      CRYSTAL
+  end
+
   it "executes ensure when the main block yields and returns" do
     run(<<-CRYSTAL).to_i.should eq(1)
       require "prelude"

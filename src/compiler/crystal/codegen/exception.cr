@@ -81,7 +81,7 @@ class Crystal::CodeGenVisitor
       # Keep track of the stack of ensure blocks inside the current function
       # This is used in codegenning returns to run the ensure blocks before returning
       ensure_exception_handlers = (@ensure_exception_handlers ||= [] of Handler)
-      ensure_exception_handlers.push Handler.new(node, context)
+      ensure_exception_handlers.push Handler.new(node, context, @rescue_block)
 
       # Codegen the body of the exception handler
       # All exceptions raised in here will enter rescue_block. We tell the codegen to make this happen
@@ -305,9 +305,12 @@ class Crystal::CodeGenVisitor
       target_ensure = exception_handler.node.ensure
       next unless target_ensure
 
+      old_rescue_block = @rescue_block
+      @rescue_block = exception_handler.outer_rescue_block
       with_context(exception_handler.context) do
         accept target_ensure
       end
+      @rescue_block = old_rescue_block
     end
   end
 
