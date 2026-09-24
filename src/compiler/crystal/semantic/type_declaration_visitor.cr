@@ -35,9 +35,11 @@ class Crystal::TypeDeclarationVisitor < Crystal::SemanticVisitor
     # This is type => variables.
     @class_vars = {} of ClassVarContainer => Hash(String, TypeDeclarationWithLocation)
 
-    # A hash of all defined funs, so we can detect when
-    # a fun is redefined with a different signature
+    # The same C symbol must have a consistent signature across all libs.
+    # Within a lib, rebinding a Crystal fun name to another C symbol must
+    # also preserve its signature.
     @externals = {} of String => External
+    @externals_by_name = {} of {Type, String} => External
   end
 
   def visit(node : Alias)
@@ -188,7 +190,14 @@ class Crystal::TypeDeclarationVisitor < Crystal::SemanticVisitor
       end
       existing.dead = true
     end
+
+    name_key = {current_type, external.name}
+    if (existing_by_name = @externals_by_name[name_key]?) && !existing_by_name.compatible_with?(external)
+      external.raise "fun redefinition with different signature (was `#{existing_by_name}` at #{existing_by_name.location})"
+    end
+
     @externals[external.real_name] = external
+    @externals_by_name[name_key] = external
   end
 
   def declare_c_struct_or_union_field(node)

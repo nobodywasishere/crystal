@@ -147,6 +147,38 @@ describe "Semantic: lib" do
       CRYSTAL
   end
 
+  it "errors if rebinding a fun to a different symbol with a different argument type (#7205)" do
+    assert_error <<-CRYSTAL, "fun redefinition with different signature"
+      lib LibC
+        fun foo = foo_f(x : Float32) : Float32
+        fun foo = foo_d(x : Float64) : Float32
+      end
+      CRYSTAL
+  end
+
+  it "errors if rebinding a fun to a different symbol with a different return type (#7205)" do
+    assert_error <<-CRYSTAL, "fun redefinition with different signature"
+      lib LibC
+        fun foo = foo_f(x : Float32) : Float32
+        fun foo = foo_d(x : Float32) : Float64
+      end
+      CRYSTAL
+  end
+
+  it "allows funs with the same name and different signatures in different libs" do
+    assert_type(<<-CRYSTAL) { float64 }
+      lib LibFoo
+        fun foo = foo_f(x : Float32) : Float32
+      end
+
+      lib LibBar
+        fun foo = foo_d(x : Float64) : Float64
+      end
+
+      LibBar.foo(1.0)
+      CRYSTAL
+  end
+
   it "types lib var get" do
     assert_type(<<-CRYSTAL) { int32 }
       lib LibC
