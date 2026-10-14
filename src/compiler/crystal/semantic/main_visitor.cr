@@ -1023,6 +1023,7 @@ module Crystal
       node.bind_to block
 
       @type_filters = nil
+      @unreachable = true if node.no_returns?
       false
     end
 
@@ -2206,6 +2207,7 @@ module Crystal
       unless node.has_breaks?
         if endless_while
           node.type = program.no_return
+          @unreachable = true
           return false
         end
 
@@ -2961,6 +2963,7 @@ module Crystal
       node.body.accept self
 
       after_exception_handler_vars = @vars.dup
+      normal_path_unreachable = @unreachable
 
       all_exception_handler_vars.pop
 
@@ -3000,8 +3003,13 @@ module Crystal
           @vars = after_exception_handler_vars.dup
           @unreachable = false
           a_else.accept self
+          normal_path_unreachable ||= @unreachable
           all_rescue_vars << @vars unless @unreachable
         end
+
+        # A returning rescue doesn't make the normal path unreachable.
+        # Flow only stops here if both the normal path and all rescues stop.
+        @unreachable = normal_path_unreachable && all_rescue_vars.empty?
 
         # If all rescue/else blocks are unreachable, then afterwards
         # the flow continues as if there were no rescue/else blocks.

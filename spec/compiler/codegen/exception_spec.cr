@@ -1,6 +1,27 @@
 require "../../spec_helper"
 
 describe "Code gen: exception" do
+  it "codegens a nilable variable after a conditional with a returning rescue (#15365)" do
+    run(<<-CRYSTAL).to_i.should eq(42)
+      require "prelude"
+
+      def foo(flag)
+        if flag
+          begin
+            1
+          rescue
+            return nil
+          end
+        else
+          output = "hello"
+        end
+        output && output
+      end
+
+      foo(true).nil? && !foo(false).nil? ? 42 : 0
+      CRYSTAL
+  end
+
   it "codegens rescue specific leaf exception" do
     run(<<-CRYSTAL).to_i.should eq(1)
       require "prelude"

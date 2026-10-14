@@ -1,5 +1,12 @@
 require "../../spec_helper"
 
+# Returns the cumulative type of a local variable in the def called by the
+# last expression. Codegen uses this type to allocate the variable.
+private def def_var_type(result, name)
+  call = result.node.as(Expressions).last.as(Call)
+  call.target_defs.not_nil!.first.vars.not_nil![name].type
+end
+
 describe "Semantic: exception" do
   it "type is union of main and rescue blocks" do
     assert_type(<<-CRYSTAL) { union_of(int32, char) }
@@ -714,6 +721,121 @@ describe "Semantic: exception" do
         foo &+ 2
       end
       CRYSTAL
+  end
+
+  it "keeps the normal path reachable when the rescue returns (#15365)" do
+    result = assert_type(<<-CRYSTAL) { nilable string }
+      def foo(flag)
+        if flag
+          begin
+            1
+          rescue
+            return "rescued"
+          end
+        else
+          output = "hello"
+        end
+        output
+      end
+
+      foo(true)
+      CRYSTAL
+
+    def_var_type(result, "output").should be(result.program.nilable result.program.string)
+  end
+
+  it "keeps an endless body unreachable when the rescue returns" do
+    assert_type(<<-CRYSTAL) { int32 }
+      require "prelude"
+
+      def foo(flag)
+        if flag
+          begin
+            while true
+            end
+          rescue
+            return 42
+          end
+        else
+          output = "hello"
+        end
+        output.size
+      end
+
+      foo(false)
+      CRYSTAL
+  end
+
+  it "keeps a NoReturn yield unreachable when the rescue returns" do
+    assert_type(<<-CRYSTAL) { int32 }
+      require "prelude"
+
+      def foo(flag)
+        if flag
+          begin
+            yield
+          rescue
+            return 42
+          end
+        else
+          output = "hello"
+        end
+        output.size
+      end
+
+      foo(false) { raise "stop" }
+      CRYSTAL
+  end
+
+  it "keeps the normal path unreachable when the else returns (#15365)" do
+    assert_type(<<-CRYSTAL) { string }
+      def foo(flag)
+        if flag
+          begin
+            1
+          rescue
+            return "rescued"
+          else
+            return "else"
+          end
+        else
+          output = "hello"
+        end
+        output
+      end
+
+      foo(true)
+      CRYSTAL
+  end
+
+  it "makes flow reachable if one of several rescues doesn't return (#15365)" do
+    result = assert_type(<<-CRYSTAL, inject_primitives: true) { nilable string }
+      lib LibC
+        fun exit(code : Int32) : NoReturn
+      end
+
+      class FooError < Exception
+      end
+
+      def foo(flag)
+        if flag
+          begin
+            LibC.exit(1)
+          rescue FooError
+            1
+          rescue
+            return "rescued"
+          end
+        else
+          output = "hello"
+        end
+        output
+      end
+
+      foo(true)
+      CRYSTAL
+
+    def_var_type(result, "output").should be(result.program.nilable result.program.string)
   end
 
   it "correctly types variable assigned inside nested exception handler (#9769)" do
