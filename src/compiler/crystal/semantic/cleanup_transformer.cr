@@ -594,6 +594,8 @@ module Crystal
         current_def = @current_def
 
         target_defs.each do |target_def|
+          check_pointer_set_type(node, target_def)
+
           if @transformed.add?(target_def)
             node.bubbling_exception do
               @current_def = target_def
@@ -638,6 +640,25 @@ module Crystal
       end
 
       node
+    end
+
+    private def check_pointer_set_type(node, target_def)
+      body = target_def.body
+      return unless body.is_a?(Primitive) && body.name == "pointer_set"
+
+      pointer_type = target_def.owner.remove_typedef.as(PointerInstanceType).element_type
+      non_virtual_type = pointer_type.remove_alias
+      return unless non_virtual_type.class? && !non_virtual_type.struct?
+
+      # Reads from a pointer to a non-virtual class assume that exact runtime
+      # class. Storing a subclass would make static method dispatch unsound.
+      # Defer this check until inference finishes: later assignments to the
+      # variable referenced by pointerof can widen its type to a virtual type,
+      # which permits storing subclasses.
+      type = target_def.args.first.type
+      unless type.remove_alias == non_virtual_type
+        node.raise "type must be #{pointer_type}, not #{type}"
+      end
     end
 
     class ClosuredVarsCollector < Visitor

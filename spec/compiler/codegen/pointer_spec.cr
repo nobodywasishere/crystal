@@ -27,6 +27,93 @@ describe "Code gen: pointer" do
     run("a = 1; b = pointerof(a); b.value = 2; a").to_i.should eq(2)
   end
 
+  it "sets the value of a pointer to a non-virtual class (#12021)" do
+    run(<<-CRYSTAL).to_i.should eq(2)
+      class Foo
+        def initialize(@value : Int32)
+        end
+
+        def value
+          @value
+        end
+      end
+
+      class Bar < Foo
+      end
+
+      x = Foo.new(1)
+      y = pointerof(x)
+      y.value = Foo.new(2)
+      x.value
+      CRYSTAL
+  end
+
+  {% for initializer in ["Foo.new.as(Foo)", "uninitialized Foo"] %}
+    it "assigns a subclass through pointerof({{initializer.id}}) (#12021)" do
+      run(<<-CRYSTAL).to_i.should eq(2)
+        class Foo
+          def value
+            1
+          end
+        end
+
+        class Bar < Foo
+          def value
+            2
+          end
+        end
+
+        x = {{initializer.id}}
+        y = pointerof(x)
+        y.value = Bar.new
+        x.value
+        CRYSTAL
+    end
+  {% end %}
+
+  it "assigns a subclass through a pointer whose type widens later (#12021)" do
+    run(<<-CRYSTAL).to_i.should eq(2)
+      class Foo
+        def value
+          1
+        end
+      end
+
+      class Bar < Foo
+        def value
+          2
+        end
+      end
+
+      x = Foo.new
+      y = pointerof(x)
+      y.value = Bar.new
+      result = y.value.value
+      x = Bar.new
+      result
+      CRYSTAL
+  end
+
+  it "assigns a subclass through Pointer(Foo).malloc (#12021)" do
+    run(<<-CRYSTAL).to_i.should eq(2)
+      class Foo
+        def value
+          1
+        end
+      end
+
+      class Bar < Foo
+        def value
+          2
+        end
+      end
+
+      y = Pointer(Foo).malloc(1_u64)
+      y.value = Bar.new
+      y.value.value
+      CRYSTAL
+  end
+
   it "get value of pointer to union" do
     run("a = 1.1; a = 1; b = pointerof(a); b.value.to_i!").to_i.should eq(1)
   end

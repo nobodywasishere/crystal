@@ -196,6 +196,64 @@ describe "Semantic: pointer" do
       CRYSTAL
   end
 
+  it "allows assigning a subclass through a pointer whose type widens later (#12021)" do
+    assert_type(<<-CRYSTAL, inject_primitives: true) { pointer_of(types["Foo"].virtual_type) }
+      class Foo
+      end
+
+      class Bar < Foo
+      end
+
+      x = Foo.new
+      y = pointerof(x)
+      y.value = Bar.new
+      x = Bar.new
+      y
+      CRYSTAL
+  end
+
+  it "errors when assigning a subclass through a pointer to a non-virtual type (#12021)" do
+    assert_error <<-CRYSTAL, "type must be Foo, not Bar", inject_primitives: true
+      class Foo
+      end
+
+      class Bar < Foo
+      end
+
+      x = Foo.new
+      y = pointerof(x)
+      y.value = Bar.new
+      CRYSTAL
+  end
+
+  it "errors when assigning a subclass through a pointer to a non-virtual generic type (#12021)" do
+    assert_error <<-CRYSTAL, "type must be Foo(Int32), not Bar", inject_primitives: true
+      class Foo(T)
+      end
+
+      class Bar < Foo(Int32)
+      end
+
+      x = Foo(Int32).new
+      y = pointerof(x)
+      y.value = Bar.new
+      CRYSTAL
+  end
+
+  it "errors when assigning a virtual type through a pointer to a non-virtual type (#12021)" do
+    assert_error <<-CRYSTAL, "type must be Foo, not Foo+", inject_primitives: true
+      class Foo
+      end
+
+      class Bar < Foo
+      end
+
+      x = Foo.new
+      y = pointerof(x)
+      y.value = Bar.new.as(Foo)
+      CRYSTAL
+  end
+
   it "errors with non-matching generic value with value= (#10211)" do
     assert_error <<-CRYSTAL, "type must be Gen(Char | Int32), not Gen(Int32)", inject_primitives: true
       class Gen(T)
