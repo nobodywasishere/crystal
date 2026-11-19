@@ -8,14 +8,12 @@ module Crystal
         address = LibC::SizeT.zero
         buf = Bytes.new(pointerof(address).as(UInt8*), sizeof(LibC::SizeT))
 
-        slice = @bytes + (@address_size + @segment_selector_size).to_u32 * offset
-        index =
-          {% if IO::ByteFormat::SystemEndian == IO::ByteFormat::LittleEndian %}
-            0
-          {% else %}
-            sizeof(LibC::SizeT) - @address_size
-          {% end %}
-        slice[index, @address_size].copy_to(buf)
+        stride = @address_size.to_u32 + @segment_selector_size
+        index = stride * offset + @segment_selector_size
+        {% if IO::ByteFormat::SystemEndian == IO::ByteFormat::BigEndian %}
+          buf += sizeof(LibC::SizeT) - @address_size
+        {% end %}
+        @bytes[index, @address_size].copy_to(buf)
 
         address
       end
